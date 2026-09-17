@@ -13,8 +13,15 @@ WORKDIR /var/www/html
 # Copy all project files
 COPY . .
 
-# Ensure SQLite database exists and set appropriate permissions for Nginx/PHP-FPM
-RUN mkdir -p /var/www/html/database && \
+# Ensure all required storage, cache, and database directories exist with proper permissions
+RUN mkdir -p /var/www/html/storage/app/public \
+             /var/www/html/storage/framework/cache/data \
+             /var/www/html/storage/framework/sessions \
+             /var/www/html/storage/framework/testing \
+             /var/www/html/storage/framework/views \
+             /var/www/html/storage/logs \
+             /var/www/html/bootstrap/cache \
+             /var/www/html/database && \
     touch /var/www/html/database/database.sqlite && \
     chown -R nginx:nginx /var/www/html && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
