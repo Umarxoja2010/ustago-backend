@@ -38,6 +38,7 @@ class UserResource extends JsonResource
                     'daysLeft' => null,
                 ]] : []),
             'role' => $this->role,
+            'region' => $this->region,
             'city' => $this->city,
             'avatar' => $this->avatar,
             'status' => $this->status,
