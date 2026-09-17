@@ -5,6 +5,7 @@ ENV WEBROOT=/var/www/html/public \
     PHP_ERRORS_STDERR=1 \
     RUN_SCRIPTS=1 \
     REAL_IP_HEADER=1 \
+    PHP_CATCHALL=1 \
     COMPOSER_ALLOW_SUPERUSER=1 \
     SKIP_COMPOSER=1
 
@@ -31,6 +32,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Copy custom Nginx configuration to default site
+COPY conf/nginx/nginx-site.conf /etc/nginx/sites-available/default.conf
 
 EXPOSE 80
 
