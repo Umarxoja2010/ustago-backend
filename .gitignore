@@ -1,0 +1,47 @@
+/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables & secrets (CRITICAL SECURITY)
+.env
+.env.backup
+.env.production
+*.key
+
+# SQLite database file
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Storage & Caches
+/storage/*.key
+/storage/oauth-*.key
+/storage/oauth-*.pub
+/storage/logs/*.log
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/*
+!/storage/app/public/.gitignore
+
+# PHP & IDE
+.phpunit.result.cache
+.php-cs-fixer.cache
+.idea
+.vscode
+.claude
+.cursor
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Shell & Tool configs
+.bash*
+.zsh*
+.*profile
+.profile
+.gitconfig
+.gitmodules
+.mcp.json
+.ripgreprc
