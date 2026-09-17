@@ -29,6 +29,9 @@ RUN mkdir -p /var/www/html/storage/app/public \
 # Install production composer dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-CMD ["/start.sh"]
+CMD ["/entrypoint.sh"]
