@@ -17,7 +17,7 @@ class AdminSeeder extends Seeder
     {
         $email = env('ADMIN_EMAIL', 'admin@ustago.uz');
         $phone = env('ADMIN_PHONE', '+998900000001');
-        $plainPassword = env('ADMIN_PASSWORD', 'Admin12345!');
+        $plainPassword = env('ADMIN_PASSWORD', 'Admin12345');
 
         // If an admin account exists under the old default email (admin@ustago.local),
         // migrate its email to the standard admin email to avoid phone collision.

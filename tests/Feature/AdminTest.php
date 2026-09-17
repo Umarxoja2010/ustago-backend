@@ -256,6 +256,29 @@ class AdminTest extends TestCase
             'password' => 'Admin12345!',
         ])->assertOk();
         $this->assertEquals('admin', $phoneLogin->json('data.user.role'));
+
+        // Also test login with Admin12345 without exclamation mark
+        $noExclamationLogin = $this->postJson('/api/auth/login', [
+            'identifier' => 'admin@ustago.uz',
+            'password' => 'Admin12345',
+        ])->assertOk();
+        $this->assertEquals('admin', $noExclamationLogin->json('data.user.role'));
+    }
+
+    public function test_admin_login_auto_seeds_when_no_admin_in_database(): void
+    {
+        // Database has 0 admins
+        $this->assertEquals(0, User::where('role', 'admin')->count());
+
+        $response = $this->postJson('/api/auth/login', [
+            'identifier' => 'admin@ustago.uz',
+            'password' => 'Admin12345',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.user.role', 'admin');
+
+        $this->assertEquals(1, User::where('role', 'admin')->count());
     }
 }
 
