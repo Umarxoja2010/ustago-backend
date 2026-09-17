@@ -20,6 +20,13 @@ class ServiceController extends Controller
 
     public function index(): JsonResponse
     {
+        if (Service::count() === 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', [
+                '--class' => 'ServiceSeeder',
+                '--force' => true,
+            ]);
+        }
+
         return $this->ok(ServiceResource::collection(Service::orderBy('name')->get()));
     }
 }

@@ -17,8 +17,7 @@ class MasterServiceController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $profile = $request->user()->masterProfile;
-        abort_unless($profile, 404, 'errors.masterProfileNotFound');
+        $profile = $this->ensureProfile($request);
 
         $services = $profile->masterServices()->with('service')->get();
 
@@ -27,8 +26,7 @@ class MasterServiceController extends Controller
 
     public function store(StoreMasterServiceRequest $request): JsonResponse
     {
-        $profile = $request->user()->masterProfile;
-        abort_unless($profile, 404, 'errors.masterProfileNotFound');
+        $profile = $this->ensureProfile($request);
 
         $data = $request->validated();
 
@@ -60,9 +58,25 @@ class MasterServiceController extends Controller
         return $this->ok(null, 'Service removed');
     }
 
+    private function ensureProfile(Request $request)
+    {
+        $user = $request->user();
+        return \App\Models\MasterProfile::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'workshop_name' => $user->name,
+                'address' => $user->city ?? 'Toshkent',
+                'city' => $user->city ?? 'Toshkent',
+                'lat' => 41.311081,
+                'lng' => 69.240562,
+                'verification_status' => 'pending',
+            ]
+        );
+    }
+
     private function authorizeOwnership(Request $request, MasterService $masterService): void
     {
-        $profile = $request->user()->masterProfile;
-        abort_if(! $profile || $masterService->master_profile_id !== $profile->id, 403);
+        $profile = $this->ensureProfile($request);
+        abort_if($masterService->master_profile_id !== $profile->id, 403);
     }
 }

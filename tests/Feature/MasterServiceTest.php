@@ -104,4 +104,37 @@ class MasterServiceTest extends TestCase
             'price' => 150000,
         ]);
     }
+
+    public function test_mechanic_can_add_custom_named_service(): void
+    {
+        $mechanic = User::factory()->mechanic()->create();
+
+        $response = $this->actingAs($mechanic, 'sanctum')->postJson('/api/master/services', [
+            'name' => 'Kalyenval yo\'nish',
+            'duration' => '2 soat',
+            'price' => 250000,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.name', 'Kalyenval yo\'nish')
+            ->assertJsonPath('data.price', 250000);
+
+        $this->assertDatabaseHas('services', ['name' => 'Kalyenval yo\'nish']);
+        $this->assertDatabaseHas('master_services', [
+            'duration' => '2 soat',
+            'price' => 250000,
+        ]);
+    }
+
+    public function test_service_catalog_auto_seeds_when_empty(): void
+    {
+        // Database starts empty due to RefreshDatabase
+        $this->assertEquals(0, Service::count());
+
+        $response = $this->getJson('/api/services');
+        $response->assertOk();
+
+        $this->assertGreaterThan(0, Service::count());
+        $this->assertNotEmpty($response->json('data'));
+    }
 }
