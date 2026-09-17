@@ -11,13 +11,56 @@ class RegisterRequest extends FormRequest
         return true; // registration is public; admin role is excluded below
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone')) {
+            $raw = (string) $this->phone;
+            $digits = preg_replace('/\D/', '', $raw);
+            if (str_starts_with($digits, '998998') && strlen($digits) >= 15) {
+                $digits = substr($digits, 6);
+            } elseif (str_starts_with($digits, '998')) {
+                $digits = substr($digits, 3);
+            }
+            if (strlen($digits) === 9) {
+                $this->merge(['phone' => '+998'.$digits]);
+            }
+        }
+
+        if ($this->has('email')) {
+            $email = trim((string) $this->email);
+            $this->merge(['email' => empty($email) ? null : strtolower($email)]);
+        }
+
+        if ($this->has('name')) {
+            $this->merge(['name' => trim((string) $this->name)]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             // Admin accounts are never created through registration (per spec).
             'role' => ['required', 'in:customer,mechanic'],
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
+            'phone' => [
+                'required',
+                'string',
+                'regex:/^\+998\d{9}$/',
+                function ($attribute, $value, $fail) {
+                    $digits = preg_replace('/\D/', '', $value);
+                    $last9 = substr($digits, -9);
+                    $exists = \App\Models\User::query()
+                        ->where('phone', $value)
+                        ->orWhere('phone', 'like', '%' . $last9)
+                        ->orWhereHas('phones', function ($q) use ($value, $last9) {
+                            $q->where('phone', $value)->orWhere('phone', 'like', '%' . $last9);
+                        })
+                        ->exists();
+                    if ($exists) {
+                        $fail('errors.accountExists');
+                    }
+                },
+            ],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
 
@@ -41,8 +84,10 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'phone.regex' => 'errors.invalidPhone',
             'phone.unique' => 'errors.accountExists',
             'email.unique' => 'errors.accountExists',
+            'password.confirmed' => 'errors.passwordMismatch',
         ];
     }
 }

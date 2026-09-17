@@ -34,6 +34,7 @@ class AuthController extends Controller
                 'status' => 'active',
                 'region' => $data['region'] ?? null,
                 'city' => $data['city'] ?? null,
+                'email_verified_at' => now(),
             ]);
 
             if ($data['role'] === 'mechanic') {
@@ -46,10 +47,10 @@ class AuthController extends Controller
                     'address' => $workshop['address'] ?? ($data['region'] ?? ''),
                     'city' => $data['city'] ?? ($workshop['city'] ?? 'Tashkent'),
                     'district' => $workshop['district'] ?? null,
-                    'lat' => $workshop['lat'] ?? null,
-                    'lng' => $workshop['lng'] ?? null,
+                    'lat' => isset($workshop['lat']) ? (float) $workshop['lat'] : 41.311081,
+                    'lng' => isset($workshop['lng']) ? (float) $workshop['lng'] : 69.240562,
                     'about' => $workshop['services'] ?? null,
-                    'experience_years' => $workshop['experience'] ?? 0,
+                    'experience_years' => isset($workshop['experience']) ? (int) $workshop['experience'] : 0,
                     'verification_status' => app()->environment('local') ? 'verified' : 'pending',
                     'is_open' => true,
                 ]);
@@ -81,10 +82,20 @@ class AuthController extends Controller
             ->when(! $isEmail, function ($q) use ($identifier) {
                 $cleaned = preg_replace('/[^\d+]/', '', $identifier);
                 $digits = preg_replace('/\D/', '', $identifier);
-                $q->where('phone', $identifier)
-                    ->orWhere('phone', $cleaned)
-                    ->orWhere('phone', '+' . $digits)
-                    ->when(strlen($digits) >= 9, fn ($sq) => $sq->orWhere('phone', 'like', '%' . substr($digits, -9)));
+                $last9 = strlen($digits) >= 9 ? substr($digits, -9) : $digits;
+
+                $q->where(function ($sub) use ($identifier, $cleaned, $digits, $last9) {
+                    $sub->where('phone', $identifier)
+                        ->orWhere('phone', $cleaned)
+                        ->orWhere('phone', '+' . $digits)
+                        ->when(strlen($digits) >= 9, fn ($sq) => $sq->orWhere('phone', 'like', '%' . $last9))
+                        ->orWhereHas('phones', function ($pq) use ($identifier, $cleaned, $digits, $last9) {
+                            $pq->where('phone', $identifier)
+                                ->orWhere('phone', $cleaned)
+                                ->orWhere('phone', '+' . $digits)
+                                ->when(strlen($digits) >= 9, fn ($sq) => $sq->orWhere('phone', 'like', '%' . $last9));
+                        });
+                });
             })
             ->first();
 

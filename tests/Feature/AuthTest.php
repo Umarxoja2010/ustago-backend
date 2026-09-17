@@ -160,4 +160,84 @@ class AuthTest extends TestCase
         $this->assertNotEmpty($avatarUrl);
         $this->assertStringContainsString('/storage/avatars/', $avatarUrl);
     }
+
+    public function test_customer_can_register_with_empty_email_and_formatted_phone(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'role' => 'customer',
+            'name' => 'Dilshod Aliyev',
+            'phone' => '+998 93 456-78-90',
+            'email' => '',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.phone', '+998934567890')
+            ->assertJsonPath('data.user.email', null);
+
+        $this->assertDatabaseHas('users', [
+            'phone' => '+998934567890',
+            'email' => null,
+        ]);
+    }
+
+    public function test_duplicate_phone_is_rejected_on_registration(): void
+    {
+        User::factory()->create(['phone' => '+998941234567']);
+
+        $response = $this->postJson('/api/auth/register', [
+            'role' => 'customer',
+            'name' => 'Someone Else',
+            'phone' => '+998 94 123-45-67',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_mechanic_registration_provides_default_coordinates_if_missing(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'role' => 'mechanic',
+            'name' => 'Usta Jasur',
+            'phone' => '971112233',
+            'password' => 'secret123',
+            'password_confirmation' => 'secret123',
+            'workshop' => [
+                'name' => 'Jasur Usta',
+                'address' => 'Yunusobod',
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.user.workshop.name', 'Jasur Usta');
+
+        $this->assertDatabaseHas('master_profiles', [
+            'workshop_name' => 'Jasur Usta',
+            'lat' => 41.311081,
+            'lng' => 69.240562,
+        ]);
+    }
+
+    public function test_user_can_login_with_formatted_phone(): void
+    {
+        User::factory()->create([
+            'phone' => '+998991234567',
+            'password' => 'secret123',
+        ]);
+
+        $this->postJson('/api/auth/login', [
+            'identifier' => '+998 99 123-45-67',
+            'password' => 'secret123',
+        ])->assertOk()->assertJsonPath('success', true);
+
+        $this->postJson('/api/auth/login', [
+            'identifier' => '991234567',
+            'password' => 'secret123',
+        ])->assertOk()->assertJsonPath('success', true);
+    }
 }
