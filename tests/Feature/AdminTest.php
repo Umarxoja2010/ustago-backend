@@ -228,4 +228,34 @@ class AdminTest extends TestCase
         $this->assertEquals(1, $response->json('data.meta.total'));
         $this->assertEquals('Maintenance', $response->json('data.items.0.title'));
     }
+
+    public function test_admin_seeder_creates_and_updates_admin_and_allows_login(): void
+    {
+        $this->seed(\Database\Seeders\AdminSeeder::class);
+
+        $admin = User::where('email', 'admin@ustago.uz')->first();
+        $this->assertNotNull($admin);
+        $this->assertEquals('admin', $admin->role);
+        $this->assertEquals('active', $admin->status);
+        $this->assertNotNull($admin->email_verified_at);
+
+        // Login via email
+        $emailLogin = $this->postJson('/api/auth/login', [
+            'identifier' => 'admin@ustago.uz',
+            'password' => 'Admin12345!',
+        ])->assertOk();
+        $this->assertEquals('admin', $emailLogin->json('data.user.role'));
+
+        // Consecutive run must be idempotent
+        $this->seed(\Database\Seeders\AdminSeeder::class);
+        $this->assertEquals(1, User::where('role', 'admin')->count());
+
+        // Login via phone
+        $phoneLogin = $this->postJson('/api/auth/login', [
+            'identifier' => '+998900000001',
+            'password' => 'Admin12345!',
+        ])->assertOk();
+        $this->assertEquals('admin', $phoneLogin->json('data.user.role'));
+    }
 }
+
